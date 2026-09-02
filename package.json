@@ -53,8 +53,8 @@
         "test": "node --test",
         "test:coverage": "node --test --experimental-test-coverage",
         "check": "npm run lint && npm test && npm run build",
-        "build": "npm run clean && copyfiles -u 1 src/*.js dist && copyfiles -u 2 src/HomeKitDevice/*.js dist && copyfiles -u 2 src/HomeKitHistory/*.js dist && copyfiles -u 1 src/res/*.h264 dist && copyfiles -u 1 src/res/*.jpg dist && copyfiles -u 1 'src/protobuf/**/*.proto' dist && copyfiles -u 1 src/plugins/*.js dist && copyfiles -u 1 src/plugins/*.mjs dist",
-        "prepare": "npm run build",
+        "build": "npm run clean && copyfiles -u 1 src/*.js dist && copyfiles -u 2 src/HomeKitDevice/*.js dist && copyfiles -u 2 src/HomeKitHistory/*.js dist && copyfiles -u 1 src/res/*.h264 dist && copyfiles -u 1 src/res/*.jpg dist && copyfiles -u 1 'src/protobuf/**/*.proto' dist && copyfiles -u 1 src/plugins/*.js dist && copyfiles -u 1 src/plugins/*.mjs dist && node scripts/verify-build.js",
+        "prepare": "git submodule update --init --recursive && npm run build",
         "prepublishOnly": "npm run format && npm run lint && npm test && npm run build"
     },
     "devDependencies": {

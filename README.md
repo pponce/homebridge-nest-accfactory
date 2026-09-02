@@ -81,6 +81,18 @@ This feature is only for compatible, already-issued credentials. It does not rec
 
 Treat all of these values as passwords. Do not include them in logs, issues, or support dumps. A refresh token that has been revoked must be replaced; restarting Homebridge cannot restore it.
 
+### Installing a development branch from GitHub
+
+Git installations initialize the `HomeKitDevice` and `HomeKitHistory` submodules and build the required `dist` files automatically. Use a raw Git URL rather than Markdown link syntax:
+
+```sh
+sudo hb-service stop
+sudo hb-service add https://github.com/pponce/homebridge-nest-accfactory.git#addLegacyRefreshtokenAuth
+sudo hb-service start
+```
+
+If replacing an earlier installation of the same branch, remove that installation first or force Homebridge to reinstall it so a cached, incomplete package is not reused.
+
 ## Account Configuration
 
 The plugin now supports **multiple Nest and Google accounts**.
