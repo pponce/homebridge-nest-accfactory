@@ -37,6 +37,7 @@ import { URL } from 'node:url';
 
 // Import our modules
 import GrpcTransport from './grpctransport.js';
+import { exchangeGoogleRefreshToken } from './auth.js';
 import { fetchWrapper } from './utils.js';
 
 // Define constants
@@ -93,6 +94,7 @@ export default class Connections {
 
         timer: undefined,
         connecting: false,
+        refreshFailed: false,
         retryDelay: CONNECTION_RETRY_INITIAL,
         refreshDelay: CONNECTION_REFRESH_FALLBACK * 1000,
         subscribeTimer: undefined,
@@ -118,19 +120,26 @@ export default class Connections {
         };
       }
 
-      // Google accounts authenticate from issueToken/cookie pair.
+      // Google accounts authenticate from either issueToken/cookie or a
+      // compatible refresh token issued by the historical Nest iOS client.
+      let googleAuthMethod = account.authMethod === 'refreshToken' ? 'refreshToken' : 'issueTokenCookie';
       if (
         account.type === 'google' &&
-        typeof account.issueToken === 'string' &&
-        account.issueToken.trim() !== '' &&
-        typeof account.cookie === 'string' &&
-        account.cookie.trim() !== ''
+        ((googleAuthMethod === 'refreshToken' && typeof account.refreshToken === 'string' && account.refreshToken.trim() !== '') ||
+          (googleAuthMethod === 'issueTokenCookie' &&
+            typeof account.issueToken === 'string' &&
+            account.issueToken.trim() !== '' &&
+            typeof account.cookie === 'string' &&
+            account.cookie.trim() !== ''))
       ) {
         entry = {
           ...baseEntry,
           type: ACCOUNT_TYPE.GOOGLE,
-          issueToken: account.issueToken.trim(),
-          cookie: account.cookie.trim(),
+          authMethod: googleAuthMethod,
+          issueToken: account.issueToken?.trim?.(),
+          cookie: account.cookie?.trim?.(),
+          refreshToken: account.refreshToken?.trim?.(),
+          userAgent: USER_AGENT,
         };
       }
 
@@ -256,7 +265,7 @@ export default class Connections {
 
     if (connection.authorised === true) {
       connection.retryDelay = CONNECTION_RETRY_INITIAL;
-      this.#run(uuid, connection.refreshDelay);
+      this.#run(uuid, connection.refreshFailed === true ? CONNECTION_RETRY_INITIAL : connection.refreshDelay);
       return true;
     }
 
@@ -271,19 +280,25 @@ export default class Connections {
     let connection = this.#connections.get(uuid);
 
     try {
-      // Exchange Google account cookie/issueToken for an OAuth access token.
-      let tokenResponse = await fetchWrapper('get', connection.issueToken, {
-        headers: {
-          Referer: 'https://accounts.google.com/',
-          Cookie: connection.cookie,
-          'User-Agent': USER_AGENT,
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'same-origin',
-          'X-Requested-With': 'XmlHttpRequest',
-        },
-      });
+      // Acquire a Google OAuth access token from the configured auth method.
+      let tokenData;
 
-      let tokenData = await tokenResponse.json();
+      if (connection.authMethod === 'refreshToken') {
+        tokenData = await exchangeGoogleRefreshToken(connection);
+      } else {
+        let tokenResponse = await fetchWrapper('get', connection.issueToken, {
+          headers: {
+            Referer: 'https://accounts.google.com/',
+            Cookie: connection.cookie,
+            'User-Agent': USER_AGENT,
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'X-Requested-With': 'XmlHttpRequest',
+          },
+        });
+
+        tokenData = await tokenResponse.json();
+      }
 
       if (typeof tokenData?.error === 'string') {
         let error = new Error(
@@ -295,7 +310,13 @@ export default class Connections {
         throw error;
       }
 
+      if ((tokenData?.access_token?.trim?.() ?? '') === '') {
+        throw new Error('Google authentication returned no access token');
+      }
+
       let googleOAuth2Token = tokenData.access_token.trim();
+      let oauthRefreshSeconds = Number(tokenData.expires_in) - 300;
+      let googleRefreshSeconds = Number.isFinite(oauthRefreshSeconds) === true ? Math.min(Math.max(60, oauthRefreshSeconds), 3300) : 3300;
 
       // Convert the OAuth token into the JWT expected by the Nest session endpoint.
       let jwtResponse = await fetchWrapper(
@@ -327,7 +348,7 @@ export default class Connections {
         throw new Error('Missing jwt in JWT response');
       }
 
-      let sessionData = await this.#fetchSession(connection, 'Basic ' + jwtData.jwt);
+      let sessionData = await this.#fetchSession(connection, 'Basic ' + jwtData.jwt, jwtData.jwt);
 
       // Store authorised runtime state and schedule token refresh.
       await this.#applyAuthorisedConnection(
@@ -340,7 +361,7 @@ export default class Connections {
           oauth2: googleOAuth2Token,
           fieldTest: connection.fieldTest === true,
         },
-        tokenData.expires_in - 300,
+        googleRefreshSeconds,
         isRetry === true
           ? 'Successfully performed token refresh using Google account for connection "%s"'
           : 'Successfully authorised using Google account for connection "%s"',
@@ -350,7 +371,7 @@ export default class Connections {
       this.#handleConnectError(
         uuid,
         error,
-        ['USER_LOGGED_OUT', 'ERR_INVALID_URL', 401, 403],
+        ['USER_LOGGED_OUT', 'invalid_client', 'invalid_grant', 'ERR_INVALID_URL', 400, 401, 403],
         'Token refresh failed using Google account for connection "%s"',
         'Authorisation failed using Google account for connection "%s"',
         accountLabel,
@@ -427,7 +448,7 @@ export default class Connections {
     }
   }
 
-  async #fetchSession(connection, authorization) {
+  async #fetchSession(connection, authorization, googleJwt) {
     // Both Google and legacy Nest auth flows finish by asking the Nest session
     // endpoint for the access token and service URLs used by runtime APIs.
     let response = await fetchWrapper('get', new URL('/session', 'https://' + connection.restAPIHost).href, {
@@ -435,6 +456,9 @@ export default class Connections {
         Referer: 'https://' + connection.referer,
         Origin: 'https://' + connection.referer,
         Authorization: authorization,
+        ...(typeof googleJwt === 'string'
+          ? { Cookie: 'G_ENABLED_IDPS=google; eu_cookie_accepted=1; viewer-volume=0.5; cztoken=' + googleJwt }
+          : {}),
         'User-Agent': USER_AGENT,
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Site': 'same-origin',
@@ -445,9 +469,13 @@ export default class Connections {
 
     // Without an access token the connection cannot subscribe, observe, or make
     // authenticated camera/weather requests, so fail this auth attempt clearly.
-    if ((data?.access_token?.trim?.() ?? '') === '') {
+    if (
+      (data?.access_token?.trim?.() ?? '') === '' ||
+      (data?.userid?.trim?.() ?? '') === '' ||
+      (data?.urls?.transport_url?.trim?.() ?? '') === ''
+    ) {
       this.#log?.debug?.('Nest session response object', data);
-      throw new Error('Missing access_token in session response');
+      throw new Error('Nest session response is missing required account or transport data');
     }
 
     return data;
@@ -495,6 +523,7 @@ export default class Connections {
       snapshotWaiters: new Map(),
       refreshDelay: refreshSecondsSafe * 1000,
       retryDelay: CONNECTION_RETRY_INITIAL,
+      refreshFailed: false,
     });
 
     if (typeof this.#onAuthorised !== 'function') {
@@ -528,15 +557,19 @@ export default class Connections {
           ? error.status
           : undefined;
 
-    // Some failures are terminal until the user updates credentials/config.
-    if (nonRetryableCodes.includes(statusCode) === true) {
-      connection.allowRetry = false;
-    } else {
-      connection.allowRetry = true;
-    }
+    let permanentFailure = nonRetryableCodes.includes(statusCode) === true;
+    let canKeepCurrentSession = connection.authorised === true && permanentFailure === false;
 
-    connection.authorised = false;
-    this.#cleanupRuntime(uuid);
+    // A failed preemptive refresh must not interrupt a still-authorised
+    // connection. Keep its runtime state and schedule a short retry. Permanent
+    // credential failures and reactive refreshes clear derived credentials.
+    connection.allowRetry = permanentFailure === false;
+    connection.refreshFailed = canKeepCurrentSession;
+
+    if (canKeepCurrentSession === false) {
+      connection.authorised = false;
+      this.#cleanupRuntime(uuid);
+    }
 
     // Treat anything other than explicit false as retryable.
     let retryState = connection.allowRetry === false ? 'will not retry' : 'will retry';
