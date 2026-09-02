@@ -81,6 +81,8 @@ This feature is only for compatible, already-issued credentials. It does not rec
 
 Treat all of these values as passwords. Do not include them in logs, issues, or support dumps. A refresh token that has been revoked must be replaced; restarting Homebridge cannot restore it.
 
+At startup, a refresh-token account reports `using Google refresh-token credentials` in both the authorisation and success messages. An issueToken/cookie account instead reports `using Google issueToken/cookie credentials`. Authentication methods are selected explicitly and the plugin does not fall back from a failed refresh token to cookies.
+
 ### Installing a development branch from GitHub
 
 Git installations fetch the pinned `HomeKitDevice` and `HomeKitHistory` sources and build the required `dist` files automatically. npm removes Git metadata before running the build, so the installer obtains those sources directly instead of invoking `git submodule update`. Use a raw Git URL rather than Markdown link syntax:

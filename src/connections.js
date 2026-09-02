@@ -161,16 +161,22 @@ export default class Connections {
     }
 
     let isRetry = connection.allowRetry === true;
-    let accountLabel = connection.type === ACCOUNT_TYPE.GOOGLE ? 'Google' : 'Nest';
+    let accountLabel =
+      connection.type === ACCOUNT_TYPE.GOOGLE
+        ? connection.authMethod === 'refreshToken'
+          ? 'Google refresh-token'
+          : 'Google issueToken/cookie'
+        : 'Nest access-token';
 
     if (connection.authorised === true) {
-      this.#log?.debug?.('Performing periodic token refresh using %s account for connection "%s"', accountLabel, connection.name);
+      this.#log?.debug?.('Performing periodic token refresh using %s credentials for connection "%s"', accountLabel, connection.name);
     } else {
       // First authorisation is user-visible; retries are debug-only.
       this.#log?.[isRetry === true ? 'debug' : 'info']?.(
-        'Performing authorisation for connection "%s" %s',
+        'Performing authorisation for connection "%s" using %s credentials%s',
         connection.name,
-        connection.fieldTest === true ? 'using field test endpoints' : '',
+        accountLabel,
+        connection.fieldTest === true ? ' with field test endpoints' : '',
       );
     }
 
@@ -363,8 +369,8 @@ export default class Connections {
         },
         googleRefreshSeconds,
         isRetry === true
-          ? 'Successfully performed token refresh using Google account for connection "%s"'
-          : 'Successfully authorised using Google account for connection "%s"',
+          ? 'Successfully performed token refresh using ' + accountLabel + ' credentials for connection "%s"'
+          : 'Successfully authorised using ' + accountLabel + ' credentials for connection "%s"',
         isRetry,
       );
     } catch (error) {
@@ -432,8 +438,8 @@ export default class Connections {
         },
         3600 * 24,
         isRetry === true
-          ? 'Successfully performed token refresh using Nest account for connection "%s"'
-          : 'Successfully authorised using Nest account for connection "%s"',
+          ? 'Successfully performed token refresh using ' + accountLabel + ' credentials for connection "%s"'
+          : 'Successfully authorised using ' + accountLabel + ' credentials for connection "%s"',
         isRetry,
       );
     } catch (error) {
