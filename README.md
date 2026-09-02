@@ -83,7 +83,7 @@ Treat all of these values as passwords. Do not include them in logs, issues, or 
 
 ### Installing a development branch from GitHub
 
-Git installations initialize the `HomeKitDevice` and `HomeKitHistory` submodules and build the required `dist` files automatically. Use a raw Git URL rather than Markdown link syntax:
+Git installations fetch the pinned `HomeKitDevice` and `HomeKitHistory` sources and build the required `dist` files automatically. npm removes Git metadata before running the build, so the installer obtains those sources directly instead of invoking `git submodule update`. Use a raw Git URL rather than Markdown link syntax:
 
 ```sh
 sudo hb-service stop
