@@ -71,6 +71,30 @@ If you did not use Safari, re-capture the tokens using Safari.
 
 **Note:** Do **not** log out of [home.nest.com](https://home.nest.com), as this will invalidate your credentials.
 
+### Using a legacy Google OAuth refresh token
+
+Existing refresh tokens issued by the historical `homebridge-nest` login utility can be used without a browser cookie. Select **Legacy Refresh Token** in Config UI and provide the refresh token. The plugin selects the historical production or TestFlight Nest iOS OAuth client identity based on `fieldTest`; these unofficial client identities belong to Google/Nest and may stop working without notice.
+
+Some legacy tools exported a JSON credential containing `refresh_token`. That complete JSON value can also be pasted into `refreshToken`.
+
+This feature is only for compatible, already-issued credentials. It does not recreate the deprecated Google OAuth out-of-band enrollment flow and cannot issue a new refresh token.
+
+Treat all of these values as passwords. Do not include them in logs, issues, or support dumps. A refresh token that has been revoked must be replaced; restarting Homebridge cannot restore it.
+
+At startup, a refresh-token account reports `using Google refresh-token credentials` in both the authorisation and success messages. An issueToken/cookie account instead reports `using Google issueToken/cookie credentials`. Authentication methods are selected explicitly and the plugin does not fall back from a failed refresh token to cookies.
+
+### Installing a development branch from GitHub
+
+Git installations fetch the pinned `HomeKitDevice` and `HomeKitHistory` sources and build the required `dist` files automatically. npm removes Git metadata before running the build, so the installer obtains those sources directly instead of invoking `git submodule update`. Use a raw Git URL rather than Markdown link syntax:
+
+```sh
+sudo hb-service stop
+sudo hb-service add https://github.com/pponce/homebridge-nest-accfactory.git#addLegacyRefreshtokenAuth
+sudo hb-service start
+```
+
+If replacing an earlier installation of the same branch, remove that installation first or force Homebridge to reinstall it so a cached, incomplete package is not reused.
+
 ## Account Configuration
 
 The plugin now supports **multiple Nest and Google accounts**.
@@ -82,6 +106,7 @@ Supported account types:
 
 - **Nest** — requires an `access_token`
 - **Google** — requires both `issueToken` and `cookie`
+- **Google (legacy refresh token)** — requires a compatible, already-issued `refreshToken`
 
 Each account entry may also optionally enable `fieldTest` for testing Nest API endpoints.
 
@@ -102,8 +127,16 @@ Sample config.json entries below
         {
             "name": "Google",
             "type": "google",
+            "authMethod": "issueTokenCookie",
             "issueToken": "<google issue token>",
             "cookie": "<google cookie>",
+            "fieldTest": false
+        },
+        {
+            "name": "Google legacy refresh token",
+            "type": "google",
+            "authMethod": "refreshToken",
+            "refreshToken": "<google refresh token>",
             "fieldTest": false
         }
     ],

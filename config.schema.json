@@ -45,6 +45,16 @@
               "pattern": "\\S",
               "placeholder": "See https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/#google-account"
             },
+            "authMethod": {
+              "type": "string",
+              "default": "issueTokenCookie",
+              "enum": ["issueTokenCookie", "refreshToken"]
+            },
+            "refreshToken": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
             "fieldTest": {
               "type": "boolean",
               "default": false
@@ -65,7 +75,37 @@
                 }
               },
               "then": {
-                "required": ["issueToken", "cookie"]
+                "oneOf": [
+                  {
+                    "properties": {
+                      "authMethod": {
+                        "enum": ["issueTokenCookie"]
+                      }
+                    },
+                    "required": ["issueToken", "cookie"],
+                    "not": {
+                      "required": ["refreshToken"]
+                    }
+                  },
+                  {
+                    "properties": {
+                      "authMethod": {
+                        "const": "refreshToken"
+                      }
+                    },
+                    "required": ["authMethod", "refreshToken"],
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": ["issueToken"]
+                        },
+                        {
+                          "required": ["cookie"]
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             },
             {
@@ -265,19 +305,35 @@
                 }
               ]
             },
-            { 
+            {
+              "key": "accounts[].authMethod",
+              "title": "Authentication",
+              "enumNames": ["Issue Token and Cookie", "Legacy Refresh Token"],
+              "condition": {
+                "functionBody": "return model.accounts[arrayIndices] && model.accounts[arrayIndices].type === 'google';"
+              }
+            },
+            {
               "key": "accounts[].issueToken",
               "title": "Issue Token",
               "condition": {
-                  "functionBody": "return model.accounts[arrayIndices] && model.accounts[arrayIndices].type === 'google';"
+                  "functionBody": "return model.accounts[arrayIndices] && model.accounts[arrayIndices].type === 'google' && (!model.accounts[arrayIndices].authMethod || model.accounts[arrayIndices].authMethod === 'issueTokenCookie');"
                 }
             },
             { 
               "key": "accounts[].cookie",
               "title": "Cookie",
               "condition": {
-                  "functionBody": "return model.accounts[arrayIndices] && model.accounts[arrayIndices].type === 'google';"
+                  "functionBody": "return model.accounts[arrayIndices] && model.accounts[arrayIndices].type === 'google' && (!model.accounts[arrayIndices].authMethod || model.accounts[arrayIndices].authMethod === 'issueTokenCookie');"
                 }
+            },
+            {
+              "key": "accounts[].refreshToken",
+              "title": "Refresh Token",
+              "type": "password",
+              "condition": {
+                "functionBody": "return model.accounts[arrayIndices] && model.accounts[arrayIndices].type === 'google' && model.accounts[arrayIndices].authMethod === 'refreshToken';"
+              }
             },
             { 
               "key": "accounts[].access_token",
