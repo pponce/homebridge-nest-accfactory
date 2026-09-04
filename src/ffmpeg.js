@@ -29,7 +29,7 @@
 // - Logging and debugging are handled by the calling module
 // - Binary validation and capability checks are performed during initialisation
 //
-// Code version 2026.05.06
+// Code version 2026.09.05
 // Mark Hulskamp
 'use strict';
 
@@ -298,6 +298,30 @@ export default class FFmpeg {
 
       // Linux: prioritise nvenc > qsv > vaapi > v4l2m2m, only if required devices exist
       else if (platform === 'linux') {
+        // Pi codec nodes are dynamically numbered; identify the encoder rather than a camera or decoder.
+        try {
+          if (fs.readFileSync('/sys/firmware/devicetree/base/model', 'utf8').startsWith('Raspberry Pi') === true) {
+            hasVideo = false;
+            hasVideo = fs.readdirSync('/sys/class/video4linux').some((device) => {
+              if (/^video\d+$/.test(device) === false) {
+                return false;
+              }
+              try {
+                if (fs.readFileSync('/sys/class/video4linux/' + device + '/name', 'utf8').trim() !== 'bcm2835-codec-encode') {
+                  return false;
+                }
+                fs.accessSync('/dev/' + device, fs.constants.R_OK | fs.constants.W_OK);
+                return true;
+              } catch {
+                // A missing or inaccessible node is not available to this process.
+                return false;
+              }
+            });
+          }
+        } catch {
+          // Missing host metadata keeps the generic check; missing Pi codec metadata leaves acceleration disabled.
+        }
+
         let linuxEncoders = [
           { key: 'h264_nvenc', device: hasDri },
           { key: 'h264_qsv', device: hasIntelQSV },
