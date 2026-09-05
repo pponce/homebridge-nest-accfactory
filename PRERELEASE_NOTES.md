@@ -4,6 +4,17 @@ All notable pre-release changes to `homebridge-nest-accfactory` are documented h
 Entries are specific to individual alpha and beta releases and are not cumulative.  
 This project tries to adhere to [Semantic Versioning](http://semver.org/).
 
+## v0.4.4-beta.2 (2026/09/05)
+
+### Changed
+
+- Updated `protobufjs` from `8.7.2` to `8.8.0`
+- Updated development dependencies: `@types/node` to `26.4.1`, `@typescript-eslint/parser` to `8.69.0`, `eslint` to `10.10.0`, and `prettier-eslint` to `17.1.2`
+
+### Fixed
+
+- Detect Raspberry Pi hardware H264 encoders by their sysfs device name and read/write access instead of requiring `/dev/video0`, without additional FFmpeg invocations
+
 ## v0.4.4-beta.1 (2026/08/20)
 
 ### Changed
