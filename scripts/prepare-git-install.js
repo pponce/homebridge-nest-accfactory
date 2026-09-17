@@ -7,7 +7,13 @@ const dependencies = [
     directory: 'src/HomeKitDevice',
     entry: 'HomeKitDevice.js',
     repository: 'https://github.com/n0rt0nthec4t/HomeKitDevice.git',
-    revision: '82aa2caba206c0c0709c54914089bdd5913d4f23',
+    revision: '7149a96b4aa4a82804c97d93354a4e384d7c40a7',
+  },
+  {
+    directory: 'src/fetchWrapper',
+    entry: 'fetchWrapper.js',
+    repository: 'https://github.com/n0rt0nthec4t/fetchWrapper.git',
+    revision: '07442477e4d5a63ed899402fee4bf5f79abb45e7',
   },
   {
     directory: 'src/HomeKitHistory',

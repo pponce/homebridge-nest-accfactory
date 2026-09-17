@@ -5,7 +5,6 @@
 import { Buffer } from 'node:buffer';
 import { URLSearchParams } from 'node:url';
 
-import { fetchWrapper } from './utils.js';
 
 export const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 export const GOOGLE_NEST_CLIENT_ID = '733249279899-1gpkq9duqmdp55a7e5lft1pr2smumdla.apps.googleusercontent.com';
@@ -37,13 +36,17 @@ export function parseLegacyRefreshToken(value) {
   return { refreshToken: trimmed };
 }
 
-export async function exchangeGoogleRefreshToken(credentials, request = fetchWrapper) {
+export async function exchangeGoogleRefreshToken(credentials, request) {
   let parsed = parseLegacyRefreshToken(credentials?.refreshToken);
   let refreshToken = parsed?.refreshToken;
   let clientId = credentials?.fieldTest === true ? GOOGLE_NEST_FIELD_TEST_CLIENT_ID : GOOGLE_NEST_CLIENT_ID;
 
   if (refreshToken === undefined || refreshToken === '') {
     throw new Error('A valid Google refresh token is required');
+  }
+
+  if (typeof request !== 'function') {
+    throw new TypeError('A request implementation is required');
   }
 
   let body = new URLSearchParams({
