@@ -10,6 +10,7 @@ on:
       - package-lock.json
       - CHANGELOG.md
       - PRERELEASE_NOTES.md
+      - .github/workflows/npm-publish.yml
 
   # Trigger stable publish when a GitHub Release is published
   release:
@@ -77,6 +78,8 @@ jobs:
   # Handles prerelease publish on push and stable publish on release
   # ------------------------------------------------------------
   publish-npm:
+    # Only the upstream repository publishes the official npm package.
+    if: github.repository == 'n0rt0nthec4t/homebridge-nest-accfactory'
     needs: validate
     runs-on: ubuntu-latest
 
