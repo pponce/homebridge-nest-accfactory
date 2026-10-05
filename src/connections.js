@@ -622,7 +622,7 @@ export default class Connections {
 
     // Resolve waiters rather than reject so in-flight snapshot requests can
     // continue through their normal fallback path during disconnect/shutdown.
-    for (let waiter of connection.snapshotWaiters.values()) {
+    for (let waiter of connection.snapshotWaiters.keys()) {
       if (typeof waiter === 'function') {
         waiter();
       }
