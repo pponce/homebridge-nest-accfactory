@@ -27,12 +27,6 @@ Follow [the migration guide](MIGRATION.md) to replace the old package through Ho
 
 After npm publication, install the beta with `sudo hb-service add homebridge-nest-accfactory-plus@0.4.4-beta.7`. Check npm availability before uninstalling your existing plugin.
 
-### Keeping up with upstream
-
-`main` is the development and future release branch for Plus, including legacy authentication support. Future upstream updates should be merged from [upstream main](https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/tree/main) through a pull request targeting **this repository's `main`**. Review conflicts, run checks, and use a merge commit so the shared history and Plus changes are retained. Do not discard this fork's commits when syncing.
-
-When upstream changes shared submodule revisions, also review the matching revision pins in `scripts/prepare-git-install.js`.
-
 ## Supported Devices
 
 The following Nest devices are known to be supported by this Homebridge plugin:

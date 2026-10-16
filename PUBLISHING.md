@@ -24,3 +24,9 @@ After the package exists, configure npm trusted publishing in the package settin
 Then run **Publish Plus to npm** from GitHub Actions on main, supplying an existing release tag. This workflow is manual only. Ordinary pushes, upstream merges and GitHub release creation do not publish to npm. Already published name/version pairs cannot be published again.
 
 For future releases, update package.json and package-lock.json versions, add exact version release notes, then update `.github/release-version` to the same version. Review upstream submodule and Git-install pins before release.
+
+## Keeping up with upstream
+
+`main` is the development and future release branch for Plus, including legacy authentication support. Future upstream updates should be merged from [upstream main](https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/tree/main) through a pull request targeting **this repository's `main`**. Review conflicts, run checks, and use a merge commit so the shared history and Plus changes are retained. Do not discard this fork's commits when syncing.
+
+When upstream changes shared submodule revisions, also review the matching revision pins in `scripts/prepare-git-install.js`.
