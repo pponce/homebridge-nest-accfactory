@@ -158,7 +158,7 @@
             "default": true
           },
           "maxStreams": {
-            "type": "number",
+            "type": "integer",
             "default": 2,
             "minimum": 1,
             "maximum": 4
@@ -191,9 +191,6 @@
               "title": "Name",
               "type": "string",
               "placeholder": "Device description for configuration"
-            },
-            "chimeSwitch": {
-              "type": "boolean"
             },
             "doorbellCooldown": {
               "type": "string"
@@ -229,6 +226,9 @@
               "type": "string"
             },
             "humiditySensor": {
+              "type": "boolean"
+            },
+            "ignoreIndoorChime": {
               "type": "boolean"
             },
             "localAccess": {
