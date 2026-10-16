@@ -19,9 +19,13 @@ The original Nest Accfactory plugin and its Nest/HomeKit integration, including 
 
 **This is compatibility support for existing credentials, not a way to create a new legacy Google login.** The historical enrollment flow is deprecated; this plugin does not restore it or generate new refresh tokens. An existing token must still be accepted by Google, and continued operation is not guaranteed. See [Using a legacy Google OAuth refresh token](#using-a-legacy-google-oauth-refresh-token) for setup and limitations.
 
-### Release status
+### First Plus release and migration
 
-The repository has been renamed to `homebridge-nest-accfactory-plus`. The separate npm package and identity-preserving migration are being prepared; the repository rename alone does not rename the installed plugin. Do not treat the upstream npm package or its Homebridge verification status as a release or verification of Plus.
+**0.4.4-beta.7** is the first Plus prerelease, based on upstream **0.4.4-beta.7**. The package is named `homebridge-nest-accfactory-plus`; the Homebridge platform remains `NestAccfactory`, and existing accessory UUIDs retain their original namespace.
+
+Follow [the migration guide](MIGRATION.md) to replace the old package through Homebridge UI while keeping configuration, cached accessories and pairing data. Live migration confirmation is still required; this beta is not a guarantee that every installation has been tested.
+
+After npm publication, install the beta with `sudo hb-service add homebridge-nest-accfactory-plus@0.4.4-beta.7`. Check npm availability before uninstalling your existing plugin.
 
 ### Keeping up with upstream
 
@@ -347,3 +351,4 @@ Building and running this project is done entirely at your own risk.
 I am not affiliated with any companies such as Google, Apple, or other related entities. The author of this project shall not be held liable for any damages or issues arising from its use.
 
 If you find this project useful, sponsorship to support ongoing development is always appreciated.
+

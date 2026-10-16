@@ -1,18 +1,18 @@
 {
-    "name": "homebridge-nest-accfactory",
-    "displayName": "Nest Accfactory",
+    "name": "homebridge-nest-accfactory-plus",
+    "displayName": "Nest Accfactory Plus",
     "type": "module",
     "version": "0.4.4-beta.7",
-    "description": "Homebridge support for Nest/Google devices including HomeKit Secure Video (HKSV) support for doorbells and cameras",
+    "description": "Nest and Google Home integration with legacy Google refresh-token authentication and HomeKit Secure Video",
     "author": "n0rt0nthec4t",
     "license": "Apache-2.0",
-    "homepage": "https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/#readme",
+    "homepage": "https://github.com/pponce/homebridge-nest-accfactory-plus#readme",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/n0rt0nthec4t/homebridge-nest-accfactory.git"
+        "url": "git+https://github.com/pponce/homebridge-nest-accfactory-plus.git"
     },
     "bugs": {
-        "url": "https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/issues"
+        "url": "https://github.com/pponce/homebridge-nest-accfactory-plus/issues"
     },
     "funding": "https://github.com/n0rt0nthec4t/homebridge-nest-accfactory?sponsor=1",
     "keywords": [
@@ -44,7 +44,9 @@
         "dist/**/*",
         "config.schema.json",
         "README.md",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        "MIGRATION.md",
+        "PRERELEASE_NOTES.md"
     ],
     "scripts": {
         "prepare": "node scripts/prepare-git-install.js && npm run build",
@@ -56,7 +58,7 @@
         "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=\"src/**\" --test-coverage-exclude=\"**/*.test.js\" --test-reporter=spec --test-reporter=./test/coverage-reporter.js --test-reporter-destination=stdout --test-reporter-destination=stdout \"test/unit/*.test.js\" \"src/HomeKitDevice/*.test.js\" \"src/HomeKitHistory/*.test.js\" \"src/fetchWrapper/*.test.js\"",
         "check": "npm run lint && npm test && npm run build",
         "build": "npm run clean && copyfiles -u 1 src/*.js dist && copyfiles -u 2 src/HomeKitDevice/HomeKitDevice.js dist && copyfiles -u 2 src/HomeKitHistory/HomeKitHistory.js dist && copyfiles -u 2 src/fetchWrapper/fetchWrapper.js dist && copyfiles -u 1 src/res/*.h264 dist && copyfiles -u 1 src/res/*.jpg dist && copyfiles -u 1 'src/protobuf/**/*.proto' dist && copyfiles -u 1 src/plugins/*.js dist && copyfiles -u 1 src/plugins/*.mjs dist",
-        "prepublishOnly": "npm run format && npm run lint && npm test && npm run build"
+        "prepublishOnly": "npm run check"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",

@@ -1,361 +1,49 @@
-name: Publish homebridge-nest-accfactory
-
+name: Publish Plus to npm
 on:
-  # Trigger prerelease publish when package.json, package-lock, or release notes change on main
-  push:
-    branches:
-      - main
-    paths:
-      - package.json
-      - package-lock.json
-      - CHANGELOG.md
-      - PRERELEASE_NOTES.md
-      - .github/workflows/npm-publish.yml
-
-  # Trigger stable publish when a GitHub Release is published
-  release:
-    types:
-      - published
-
-  # Allow manual trigger if needed
   workflow_dispatch:
-
+    inputs:
+      tag:
+        description: Existing GitHub release tag to publish
+        required: true
+        default: v0.4.4-beta.7
 permissions:
-  id-token: write   # Required for npm trusted publishing (OIDC)
-  contents: write   # Required to create tags and GitHub releases
-
-env:
-  NODE_PUBLISH_VERSION: 24
-
-# Prevent overlapping publishes for the same ref
+  contents: read
 concurrency:
-  group: npm-publish-${{ github.ref }}
+  group: plus-npm-publish
   cancel-in-progress: false
-
 jobs:
-  # ------------------------------------------------------------
-  # Validate job
-  # Test install/format/lint/build across OS + Node versions
-  # ------------------------------------------------------------
-  validate:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node: [22, 24, 26]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      # Checkout repository
-      - uses: actions/checkout@v5
-        with:
-          submodules: true
-
-      # Setup Node (matrix version)
-      - uses: actions/setup-node@v5
-        with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-
-      # Install dependencies
-      - run: npm ci
-
-      # Format code (auto-fix style issues)
-      - run: npm run format
-
-      # Validate lint after formatting
-      - run: npm run lint
-
-      # Build dist output
-      - run: npm run build
-
-      # Optional audit (non-blocking)
-      - run: npm audit --audit-level=high || true
-
-  # ------------------------------------------------------------
-  # Publish job
-  # Handles prerelease publish on push and stable publish on release
-  # ------------------------------------------------------------
-  publish-npm:
-    # Only the upstream repository publishes the official npm package.
-    if: github.repository == 'n0rt0nthec4t/homebridge-nest-accfactory'
-    needs: validate
+  publish:
+    if: github.repository == 'pponce/homebridge-nest-accfactory-plus' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      # Checkout repo again for clean publish environment
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          ref: ${{ inputs.tag }}
           submodules: true
-
-      # --------------------------------------------------------
-      # Read version and derive publish metadata
-      #
-      # Examples:
-      #   0.4.0-alpha.18 -> prerelease=true, channel=alpha, npm_tag=alpha
-      #   0.4.0-beta.1   -> prerelease=true, channel=beta,  npm_tag=beta
-      #   0.4.0          -> prerelease=false, channel=stable, npm_tag=latest
-      # --------------------------------------------------------
-      - name: Read version and determine publish metadata
-        id: meta
-        shell: bash
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          TAG_NAME="v${VERSION}"
-
-          if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([A-Za-z]+)\.([0-9]+)$ ]]; then
-            BASE_VERSION="${BASH_REMATCH[1]}"
-            CHANNEL="${BASH_REMATCH[2]}"
-            IS_PRERELEASE="true"
-            NPM_TAG="$CHANNEL"
-          else
-            BASE_VERSION="$VERSION"
-            CHANNEL="stable"
-            IS_PRERELEASE="false"
-            NPM_TAG="latest"
-          fi
-
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
-          echo "BASE_VERSION=$BASE_VERSION" >> "$GITHUB_ENV"
-          echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
-          echo "IS_PRERELEASE=$IS_PRERELEASE" >> "$GITHUB_ENV"
-          echo "NPM_TAG=$NPM_TAG" >> "$GITHUB_ENV"
-
-          echo "Detected version: $VERSION"
-          echo "Detected base version: $BASE_VERSION"
-          echo "Detected channel: $CHANNEL"
-          echo "Publishing with npm tag: $NPM_TAG"
-
-      # --------------------------------------------------------
-      # Safety checks
-      # - Push-based publish is only for prerelease versions
-      # - Release-based publish is only for stable versions
-      # --------------------------------------------------------
-      - name: Enforce prerelease push rules
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          if [[ "$IS_PRERELEASE" != "true" ]]; then
-            echo "Push publish is only allowed for prerelease versions (got $VERSION)"
-            exit 1
-          fi
-
-      - name: Enforce stable release rules
-        if: github.event_name == 'release'
-        shell: bash
-        run: |
-          if [[ "$IS_PRERELEASE" != "false" ]]; then
-            echo "GitHub Release publish is only allowed for stable versions (got $VERSION)"
-            exit 1
-          fi
-
-          if [[ "${{ github.event.release.tag_name }}" != "$TAG_NAME" ]]; then
-            echo "GitHub Release tag (${{ github.event.release.tag_name }}) does not match package.json version tag ($TAG_NAME)"
-            exit 1
-          fi
-
-      # --------------------------------------------------------
-      # Extract release notes
-      #
-      # Prerelease publishes:
-      #   - Read exact version section from PRERELEASE_NOTES.md
-      #
-      # Stable publishes:
-      #   - Read exact version section from CHANGELOG.md
-      #   - Append global "Known Issues" section from CHANGELOG.md
-      #
-      # Expected headings:
-      #   ## v0.4.0-alpha.18
-      #   ## v0.4.0-beta.12
-      #   ## v0.4.0
-      #
-      # Note:
-      # - The matched heading line is used for parsing only and is NOT
-      #   included in RELEASE_NOTES.md, so the GitHub release page does
-      #   not repeat the version heading already shown in the release title.
-      # --------------------------------------------------------
-      - name: Extract release notes
-        shell: bash
-        run: |
-          node <<'EOF'
-          const fs = require('fs');
-
-          const version = process.env.VERSION;
-          const isPrerelease = process.env.IS_PRERELEASE === 'true';
-          const sourceFile = isPrerelease === true ? 'PRERELEASE_NOTES.md' : 'CHANGELOG.md';
-
-          const fallbackOutput = [
-            isPrerelease === true
-              ? 'No published release notes for this pre-release.'
-              : 'No published release notes for this release.',
-            '',
-            isPrerelease === true
-              ? 'This is a development build and may contain incremental changes.'
-              : 'Please refer to CHANGELOG.md for details of recent changes.',
-          ];
-
-          if (fs.existsSync(sourceFile) !== true) {
-            console.warn(`Required release notes file "${sourceFile}" was not found, using fallback text`);
-            fs.writeFileSync('RELEASE_NOTES.md', fallbackOutput.join('\n').trim() + '\n');
-            process.exit(0);
-          }
-
-          const content = fs.readFileSync(sourceFile, 'utf8');
-          const lines = content.split(/\r?\n/);
-          const headingRegex = new RegExp(`^## v${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
-
-          let output = [];
-          let start = -1;
-
-          // -----------------------------------------
-          // 1. Extract exact version section
-          //    Skip the matched heading itself so GitHub
-          //    release body does not duplicate the title
-          // -----------------------------------------
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-
-            if (start === -1 && headingRegex.test(line.trim()) === true) {
-              start = i;
-              continue;
-            }
-
-            if (start !== -1) {
-              if (i > start && line.trimStart().startsWith('## ') === true) {
-                break;
-              }
-
-              output.push(line);
-            }
-          }
-
-          // -----------------------------------------
-          // 2. Fallback if version section not found
-          // -----------------------------------------
-          if (start === -1) {
-            console.warn(`No release notes found for v${version} in ${sourceFile}, using fallback text`);
-            output = [...fallbackOutput];
-          }
-
-          // Remove leading/trailing blank lines from extracted section
-          while (output.length > 0 && output[0].trim() === '') {
-            output.shift();
-          }
-
-          while (output.length > 0 && output[output.length - 1].trim() === '') {
-            output.pop();
-          }
-
-          // If section exists but contains no body, use fallback text
-          if (output.length === 0) {
-            output = [...fallbackOutput];
-          }
-
-          // -----------------------------------------
-          // 3. Append global Known Issues for stable only
-          // -----------------------------------------
-          if (isPrerelease === false && fs.existsSync('CHANGELOG.md') === true) {
-            const changelogLines = fs.readFileSync('CHANGELOG.md', 'utf8').split(/\r?\n/);
-            let knownIssues = [];
-            let inKnownIssues = false;
-
-            for (let i = 0; i < changelogLines.length; i++) {
-              const line = changelogLines[i];
-
-              if (line.trim() === '### Known Issues') {
-                inKnownIssues = true;
-                knownIssues.push(line);
-                continue;
-              }
-
-              if (inKnownIssues === true) {
-                if (line.trimStart().startsWith('## ') === true) {
-                  break;
-                }
-
-                knownIssues.push(line);
-              }
-            }
-
-            if (knownIssues.length > 0) {
-              output.push('');
-              output.push(...knownIssues);
-            }
-          }
-
-          fs.writeFileSync('RELEASE_NOTES.md', output.join('\n').trim() + '\n');
-          EOF
-
-      # Setup Node for publish (always Node 24)
       - uses: actions/setup-node@v5
         with:
-          node-version: ${{ env.NODE_PUBLISH_VERSION }}
-          registry-url: https://registry.npmjs.org/
+          node-version: 24
+          registry-url: https://registry.npmjs.org
           cache: npm
-
-      # Install dependencies
-      - run: npm ci
-
-      # Ensure clean formatted + built output
-      - run: npm run format
-      - run: npm run lint
-      - run: npm run build
-
-      # Preview package contents before publish
-      - run: npm pack --dry-run
-
-      # --------------------------------------------------------
-      # Publish to npm using trusted publishing (OIDC)
-      # Npm tag is derived automatically from package.json version
-      # --------------------------------------------------------
-      - name: Publish to npm
-        run: npm publish --tag "$NPM_TAG" --access public
-
-      # --------------------------------------------------------
-      # Create git tag for prerelease push publishes
-      # This is skipped for stable release publishes because the
-      # GitHub Release already exists and is tied to its tag
-      # --------------------------------------------------------
-      - name: Create and push git tag
-        if: github.event_name == 'push'
-        shell: bash
+      - name: Validate package and published GitHub release
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Tag $TAG_NAME already exists"
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git tag "$TAG_NAME"
-          git push origin "$TAG_NAME"
-
-      # --------------------------------------------------------
-      # Create GitHub prerelease for alpha/beta push publishes
-      # --------------------------------------------------------
-      - name: Create GitHub prerelease
-        if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.TAG_NAME }}
-          name: ${{ env.TAG_NAME }}
-          body_path: RELEASE_NOTES.md
-          prerelease: true
-          generate_release_notes: false
-
-      # --------------------------------------------------------
-      # Update stable GitHub Release notes from CHANGELOG.md
-      # --------------------------------------------------------
-      - name: Update GitHub Release notes
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.TAG_NAME }}
-          name: ${{ env.TAG_NAME }}
-          body_path: RELEASE_NOTES.md
-          prerelease: false
-          generate_release_notes: false
+          gh release view "$RELEASE_TAG"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const pkg = JSON.parse(fs.readFileSync('package.json'));
+          assert.equal(pkg.name, 'homebridge-nest-accfactory-plus');
+          assert.equal('v' + pkg.version, process.env.RELEASE_TAG);
+          const channel = pkg.version.includes('-') ? 'beta' : 'latest';
+          fs.appendFileSync(process.env.GITHUB_ENV, 'NPM_TAG=' + channel + '\n');
+          NODE
+      - run: npm ci
+      - run: npm run check
+      - run: node scripts/check-package.js
+      - run: npm publish --access public --tag "$NPM_TAG"

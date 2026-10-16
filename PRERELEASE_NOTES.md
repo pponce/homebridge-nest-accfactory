@@ -1,3 +1,16 @@
+## v0.4.4-beta.7
+
+First Nest Accfactory Plus prerelease, based on upstream 0.4.4-beta.7.
+
+- Adds the separate `homebridge-nest-accfactory-plus` package and registration name.
+- Retains legacy Google OAuth refresh-token authentication for compatible existing credentials. This does not create new legacy credentials.
+- Preserves the `NestAccfactory` platform and original device UUID namespace, including external cameras.
+- Adds cache-reuse and identity regression tests and a production tarball installation check.
+- Documents the Homebridge UI uninstall/install migration in MIGRATION.md.
+- Separates GitHub releases from explicit npm publishing; upstream merges do not publish to npm.
+
+Live migration, Google authentication and physical camera/HKSV behavior still require confirmation on an existing installation. Back up before migration and retain configuration, accessory cache and pairing records. See MIGRATION.md for the exact sequence.
+
 # Pre-release Notes
 
 All notable pre-release changes to `homebridge-nest-accfactory` are documented here.  
@@ -623,3 +636,4 @@ Due to the volume of changes in this release, versioning has been reverted to al
 
 - Main changes are around the video/audio pipelines in `webrtc.js` and `streamer.js` to improve stability and recovery from packet loss, especially for video streams
 - Added logging and cleanup around talkback stream handling
+

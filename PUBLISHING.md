@@ -1,0 +1,26 @@
+# Publishing Plus
+
+GitHub releases and npm publication are separate operations. The release workflow tests Node 22/24/26, installs the production tarball, and attaches it to a GitHub release. It runs when `.github/release-version` changes on main or when explicitly dispatched. The marker must match package.json and release notes.
+
+For the first npm publication, use your own npm account locally. Do not send npm credentials to anyone. From a clean checkout of the GitHub release tag, with submodules initialized and Node 24 installed:
+
+```sh
+npm ci
+npm run check
+node scripts/check-package.js
+npm login
+npm publish --access public --tag beta
+```
+
+The first version is `0.4.4-beta.7`. Confirm package name availability and your npm account before publishing. The `beta` tag keeps this prerelease separate from stable `latest` installations.
+
+After the package exists, configure npm trusted publishing in the package settings:
+
+- Provider: GitHub Actions
+- Organization/user: `pponce`
+- Repository: `homebridge-nest-accfactory-plus`
+- Workflow: `npm-publish.yml`
+
+Then run **Publish Plus to npm** from GitHub Actions on main, supplying an existing release tag. This workflow is manual only. Ordinary pushes, upstream merges and GitHub release creation do not publish to npm. Already published name/version pairs cannot be published again.
+
+For future releases, update package.json and package-lock.json versions, add exact version release notes, then update `.github/release-version` to the same version. Review upstream submodule and Git-install pins before release.

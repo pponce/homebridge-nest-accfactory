@@ -1,0 +1,75 @@
+name: Release Plus
+on:
+  push:
+    branches: [main]
+    paths: [.github/release-version]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plus-release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.repository == 'pponce/homebridge-nest-accfactory-plus' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24, 26]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Verify release intent and notes
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const pkg = JSON.parse(fs.readFileSync('package.json'));
+          assert.equal(pkg.name, 'homebridge-nest-accfactory-plus');
+          assert.equal(fs.readFileSync('.github/release-version', 'utf8').trim(), pkg.version);
+          const source = fs.readFileSync(pkg.version.includes('-') ? 'PRERELEASE_NOTES.md' : 'CHANGELOG.md', 'utf8');
+          const section = source.split('## v' + pkg.version + '\n')[1]?.split('\n## ')[0]?.trim();
+          assert.ok(section, 'Missing exact release notes');
+          fs.writeFileSync('RELEASE_NOTES.md', section + '\n');
+          fs.appendFileSync(process.env.GITHUB_ENV, 'VERSION=' + pkg.version + '\n');
+          NODE
+      - run: node scripts/check-package.js
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release already exists; leaving it unchanged."
+          else
+            flags=()
+            if [[ "$VERSION" == *-* ]]; then flags+=(--prerelease); fi
+            gh release create "v$VERSION" "homebridge-nest-accfactory-plus-$VERSION.tgz" \
+              --target "$GITHUB_SHA" --title "Nest Accfactory Plus v$VERSION" \
+              --notes-file RELEASE_NOTES.md "${flags[@]}"
+          fi

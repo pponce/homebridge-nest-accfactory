@@ -23,8 +23,8 @@
 // Import our modules
 import NestAccfactory from './system.js';
 import HomeKitDevice from './HomeKitDevice.js';
-HomeKitDevice.PLUGIN_NAME = 'homebridge-nest-accfactory';
-HomeKitDevice.PLATFORM_NAME = 'NestAccfactory';
+import { configureIdentity, PLUGIN_NAME, PLATFORM_NAME } from './identity.js';
+configureIdentity(HomeKitDevice);
 // HomeKitDevice.LOGGER will be set by the system class constructor
 
 import HomeKitHistory from './HomeKitHistory.js';
@@ -37,5 +37,6 @@ export default (api) => {
   }
 
   // Register our platform with Homebridge
-  api.registerPlatform(HomeKitDevice.PLATFORM_NAME, NestAccfactory);
+  api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, NestAccfactory);
 };
+

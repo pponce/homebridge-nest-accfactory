@@ -1,3 +1,7 @@
+# Nest Accfactory Plus
+
+Plus prereleases are documented in [PRERELEASE_NOTES.md](PRERELEASE_NOTES.md). The first Plus beta is based on upstream 0.4.4-beta.7. The historical upstream changelog follows.
+
 # Change Log
 
 All notable changes to `homebridge-nest-accfactory` are documented in this file.  
@@ -454,3 +458,4 @@ Apologies for this change, as I can understand what an inconvience and frustrati
 
 - Inital re-coding from Nest_accfactory code base. These projects will now share a common code base
 - Camera/Doorbell support currently removed will re-worked
+

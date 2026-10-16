@@ -31,19 +31,19 @@
               "type": "string",
               "minLength": 1,
               "pattern": "\\S",
-              "placeholder": "See https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/#nest-account"
+              "placeholder": "See https://github.com/pponce/homebridge-nest-accfactory-plus#configuration"
             },
             "issueToken": {
               "type": "string",
               "minLength": 1,
               "pattern": "\\S",
-              "placeholder": "See https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/#google-account"
+              "placeholder": "See https://github.com/pponce/homebridge-nest-accfactory-plus#configuration"
             },
             "cookie": {
               "type": "string",
               "minLength": 1,
               "pattern": "\\S",
-              "placeholder": "See https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/#google-account"
+              "placeholder": "See https://github.com/pponce/homebridge-nest-accfactory-plus#configuration"
             },
             "authMethod": {
               "type": "string",
@@ -480,3 +480,4 @@
     }
   ]
 }
+
