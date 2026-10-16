@@ -3,18 +3,31 @@
 </p>
 <span align="center">
 
-# Nest Accfactory
-
-![npm](https://img.shields.io/npm/v/homebridge-nest-accfactory/latest?label=npm%40latest&color=%234CAF50)
-![npm](https://img.shields.io/npm/v/homebridge-nest-accfactory/beta?label=npm%40beta&color=%23FF9800)
-![npm](https://img.shields.io/npm/v/homebridge-nest-accfactory/alpha?label=npm%40alpha&color=%239E9E9E)
-[![verified-by-homebridge](https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=flat)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+# Nest Accfactory Plus
 
 </span>
 
-Formally known as [Nest_accfactory](https://github.com/n0rt0nthec4t/Nest_accfactory), this is a Homebridge plugin I have developed to allow Nest devices to be used with HomeKit including having support for HomeKit Secure Video on doorbells and camera devices
+**Nest Accfactory Plus adds legacy Google OAuth refresh-token authentication to [Nest Accfactory](https://github.com/n0rt0nthec4t/homebridge-nest-accfactory).** This fork is for users who already have a compatible refresh token from the historical `homebridge-nest` login utility and want to keep using it while receiving updates from the upstream project.
 
-Building and maintaining this project takes time, effort, and resources. If you find it valuable, please consider sponsoring to support its development and future improvements. Your support makes a difference—thank you!
+The original Nest Accfactory plugin and its Nest/HomeKit integration, including HomeKit Secure Video for supported cameras and doorbells, are the work of [n0rt0nthec4t and upstream contributors](https://github.com/n0rt0nthec4t/homebridge-nest-accfactory). This fork is maintained separately by [pponce](https://github.com/pponce).
+
+## What Plus adds
+
+- **An additional Google authentication option:** select **Legacy Refresh Token** and use an existing compatible Google OAuth refresh token without supplying browser cookies or an `issueToken` URL.
+- **Support for existing credential formats:** provide the token itself or paste a legacy JSON credential containing `refresh_token`.
+- **Explicit authentication selection:** the existing Google issueToken/cookie and Nest access-token methods remain available. A failed refresh token does not silently fall back to browser cookies.
+
+**This is compatibility support for existing credentials, not a way to create a new legacy Google login.** The historical enrollment flow is deprecated; this plugin does not restore it or generate new refresh tokens. An existing token must still be accepted by Google, and continued operation is not guaranteed. See [Using a legacy Google OAuth refresh token](#using-a-legacy-google-oauth-refresh-token) for setup and limitations.
+
+### Release status
+
+The repository has been renamed to `homebridge-nest-accfactory-plus`. The separate npm package and identity-preserving migration are being prepared; the repository rename alone does not rename the installed plugin. Do not treat the upstream npm package or its Homebridge verification status as a release or verification of Plus.
+
+### Keeping up with upstream
+
+`main` is the development and future release branch for Plus, including legacy authentication support. Future upstream updates should be merged from [upstream main](https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/tree/main) through a pull request targeting **this repository's `main`**. Review conflicts, run checks, and use a merge commit so the shared history and Plus changes are retained. Do not discard this fork's commits when syncing.
+
+When upstream changes shared submodule revisions, also review the matching revision pins in `scripts/prepare-git-install.js`.
 
 ## Supported Devices
 
@@ -52,7 +65,7 @@ If you have a **Nest Account**, you’ll need to obtain an **access token** from
 
 ### Obtaining an **issueToken and cookie token** for Google Accounts (Safari method)
 
-Google Accounts require an **"issueToken"** and **"cookie"**, which are unique to your account. You only need to do this once as long as you stay logged into your Google Account.
+For the browser-based authentication method, Google Accounts require an **"issueToken"** and **"cookie"**, which are unique to your account. You only need to do this once as long as you stay logged into your Google Account.
 
 1. Open Safari in a **Private Window**  
 2. Enable the **Develop Menu** (Safari ▸ Settings ▸ Advanced ▸ check *Show features for web developers*)  
@@ -89,7 +102,7 @@ Git installations fetch the pinned `HomeKitDevice` and `HomeKitHistory` sources 
 
 ```sh
 sudo hb-service stop
-sudo hb-service add https://github.com/pponce/homebridge-nest-accfactory.git#addLegacyRefreshtokenAuth
+sudo hb-service add https://github.com/pponce/homebridge-nest-accfactory-plus.git#main
 sudo hb-service start
 ```
 
@@ -319,7 +332,7 @@ Supported environments include Homebridge installations running on common platfo
 
 Platforms that bundle, modify, or wrap Homebridge — such as **HOOBS**, **Home Assistant**, or similar derivatives are **not officially supported** and may behave differently. Issues reported from these environments may be closed without investigation.
 
-If you encounter a problem, please [raise an issue](https://github.com/n0rt0nthec4t/homebridge-nest-accfactory/issues) on the project's **GitHub repository**.
+If you encounter a problem, please [raise an issue](https://github.com/pponce/homebridge-nest-accfactory-plus/issues) on the project's **GitHub repository**.
 
 When reporting an issue, providing relevant diagnostic information (logs, configuration snippets, device details, etc.) and being available to assist with follow-up testing is greatly appreciated. Issues reported without sufficient detail may be difficult to investigate.
 
