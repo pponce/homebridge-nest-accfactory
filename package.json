@@ -47,14 +47,15 @@
         "CHANGELOG.md"
     ],
     "scripts": {
+        "prepare": "node scripts/prepare-git-install.js && npm run build",
+        "postbuild": "node scripts/verify-build.js",
         "clean": "rimraf dist",
         "format": "prettier --write \"{src,test}/**/*.{js,mjs}\" && eslint --fix \"src/**/*.{js,mjs}\" \"test/**/*.js\"",
         "lint": "eslint \"src/**/*.{js,mjs}\" \"test/**/*.js\" --max-warnings=20",
         "test": "node --test",
         "test:coverage": "node --test --experimental-test-coverage",
         "check": "npm run lint && npm test && npm run build",
-        "build": "npm run clean && copyfiles -u 1 src/*.js dist && copyfiles -u 2 src/HomeKitDevice/HomeKitDevice.js dist && copyfiles -u 2 src/HomeKitHistory/*.js dist && copyfiles -u 2 src/fetchWrapper/fetchWrapper.js dist && copyfiles -u 1 src/res/*.h264 dist && copyfiles -u 1 src/res/*.jpg dist && copyfiles -u 1 'src/protobuf/**/*.proto' dist && copyfiles -u 1 src/plugins/*.js dist && copyfiles -u 1 src/plugins/*.mjs dist && node scripts/verify-build.js",
-        "prepare": "node scripts/prepare-git-install.js && npm run build",
+        "build": "npm run clean && copyfiles -u 1 src/*.js dist && copyfiles -u 2 src/HomeKitDevice/HomeKitDevice.js dist && copyfiles -u 2 src/HomeKitHistory/HomeKitHistory.js dist && copyfiles -u 2 src/fetchWrapper/fetchWrapper.js dist && copyfiles -u 1 src/res/*.h264 dist && copyfiles -u 1 src/res/*.jpg dist && copyfiles -u 1 'src/protobuf/**/*.proto' dist && copyfiles -u 1 src/plugins/*.js dist && copyfiles -u 1 src/plugins/*.mjs dist",
         "prepublishOnly": "npm run format && npm run lint && npm test && npm run build"
     },
     "devDependencies": {
